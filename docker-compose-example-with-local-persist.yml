@@ -1,0 +1,93 @@
+version: '3.8'
+
+# Example showing how to use local-persist with applications
+# This demonstrates deploying local-persist alongside a Plex media server
+
+services:
+  # Local-persist volume plugin
+  local-persist:
+    container_name: local-persist
+    image: ghcr.io/smashingtags/local-persist:latest
+    restart: unless-stopped
+    user: root
+    privileged: true
+    cap_add:
+      - SYS_ADMIN
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:rw
+      - /run/docker/plugins:/run/docker/plugins:rw
+      - /var/lib/docker/plugin-data:/var/lib/docker/plugin-data:rw
+      - /opt/appdata:/opt/appdata:shared
+      - /mnt:/mnt:shared
+    environment:
+      - PUID=0
+      - PGID=0
+      - TZ=${TZ:-UTC}
+    healthcheck:
+      test: ["CMD", "test", "-S", "/run/docker/plugins/local-persist.sock"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # Example application using local-persist volumes
+  plex:
+    container_name: plex
+    image: plexinc/pms-docker:latest
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - PLEX_CLAIM=${PLEX_CLAIM_TOKEN}
+      - PLEX_UID=${PUID:-1000}
+      - PLEX_GID=${PGID:-1000}
+      - TZ=${TZ:-UTC}
+    volumes:
+      # Using local-persist volumes for configuration and transcode
+      - plex-config:/config
+      - plex-transcode:/transcode
+      # Media directories (read-only)
+      - /mnt/media/movies:/movies:ro
+      - /mnt/media/tv:/tv:ro
+      - /mnt/media/music:/music:ro
+    depends_on:
+      local-persist:
+        condition: service_healthy
+
+  # Another example application
+  radarr:
+    container_name: radarr
+    image: linuxserver/radarr:latest
+    restart: unless-stopped
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-UTC}
+    volumes:
+      - radarr-config:/config
+      - /mnt/media/movies:/movies
+      - /mnt/downloads:/downloads
+    ports:
+      - "7878:7878"
+    depends_on:
+      local-persist:
+        condition: service_healthy
+
+volumes:
+  # Local-persist volumes that map to specific host directories
+  plex-config:
+    driver: local-persist
+    driver_opts:
+      mountpoint: /opt/appdata/plex
+      
+  plex-transcode:
+    driver: local-persist
+    driver_opts:
+      mountpoint: /tmp/plex-transcode
+      
+  radarr-config:
+    driver: local-persist
+    driver_opts:
+      mountpoint: /opt/appdata/radarr

@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  local-persist:
+    container_name: local-persist
+    image: ghcr.io/smashingtags/local-persist:latest
+    restart: unless-stopped
+    user: root
+    privileged: true
+    cap_add:
+      - SYS_ADMIN
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+    volumes:
+      # Docker socket for communication
+      - /var/run/docker.sock:/var/run/docker.sock:rw
+      # Plugin socket directory - must be writable
+      - /run/docker/plugins:/run/docker/plugins:rw
+      # Plugin data directory
+      - /var/lib/docker/plugin-data:/var/lib/docker/plugin-data:rw
+      # Host mount points for local-persist volumes
+      - /opt/appdata:/opt/appdata:shared
+      - /mnt:/mnt:shared
+    environment:
+      - PUID=0
+      - PGID=0
+      - TZ=${TZ:-UTC}
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+    healthcheck:
+      test: ["CMD", "test", "-S", "/run/docker/plugins/local-persist.sock"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    labels:
+      - "com.docker.compose.project=local-persist"
+      - "org.label-schema.name=Local Persist Volume Plugin"
+      - "org.label-schema.description=Docker volume plugin for persistent local volumes"
+      - "org.label-schema.url=https://github.com/smashingtags/local-persist"
+      - "org.label-schema.vendor=smashingtags"
