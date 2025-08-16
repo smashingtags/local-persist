@@ -1,13 +1,44 @@
-FROM golang:1.5
+# Development build container with Go modules
+FROM golang:1.21-alpine AS dev-builder
 
-RUN curl https://glide.sh/get | sh
+# Install build dependencies
+RUN apk add --no-cache git make bash ca-certificates
 
-WORKDIR $GOPATH/src/local-persist
-ENV GO15VENDOREXPERIMENT 1
+# Set working directory
+WORKDIR /src
 
-COPY glide.yaml glide.lock ./
-RUN glide install -v
+# Copy go mod files first for better layer caching
+COPY go.mod go.sum ./
+RUN go mod download
 
-COPY ./ ./
+# Copy source code
+COPY . .
 
+# Set up build environment for cross-compilation
+ENV CGO_ENABLED=0
+
+# Default command builds all binaries
+CMD ["make", "binaries"]
+
+# Development stage with hot reload capabilities
+FROM golang:1.21-alpine AS dev
+
+RUN apk add --no-cache git make bash ca-certificates
+
+# Install air for hot reloading in development
+RUN go install github.com/cosmtrek/air@latest
+
+WORKDIR /src
+
+# Copy go mod files
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Expose common development ports
+EXPOSE 8080
+
+# Default to building binaries, but can be overridden for development
 CMD ["make", "binaries"]

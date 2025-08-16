@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  # Test the plugin with a simple container
+  test-app:
+    image: alpine:latest
+    command: |
+      sh -c "
+        echo 'Testing local-persist volume functionality';
+        echo 'Current date: ' > /data/test.txt;
+        date >> /data/test.txt;
+        echo 'Plugin test data written to /data/test.txt';
+        cat /data/test.txt;
+        sleep 30;
+      "
+    volumes:
+      - test-data:/data
+    depends_on:
+      - local-persist
+
+  # Use existing Docker Hub image for testing
+  local-persist:
+    image: cwspear/docker-local-persist-volume-plugin:latest
+    privileged: true
+    network_mode: host
+    restart: unless-stopped
+    volumes:
+      # Plugin socket communication (Windows Docker compatibility)
+      - //var/run/docker.sock:/var/run/docker.sock:ro
+      - plugin-data:/var/lib/docker/plugin-data/
+      - test-volume-data:/data/test/
+
+volumes:
+  test-data:
+    driver: local-persist
+    driver_opts:
+      mountpoint: /data/test/shared
+  plugin-data:
+  test-volume-data:

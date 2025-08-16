@@ -1,22 +1,87 @@
-version: '2'
+version: '3.8'
 
 services:
-  one:
-    image: alpine
-    working_dir: /one/
-    command: sleep 600
+  # Local Persist Volume Plugin
+  local-persist:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: local-persist-plugin
+    restart: unless-stopped
+    privileged: true  # Required for volume plugin operations
+    network_mode: host
     volumes:
-      - data:/one/
+      # Plugin socket communication with Docker daemon
+      - /run/docker/plugins/:/run/docker/plugins/
+      # State persistence for plugin data
+      - plugin_data:/var/lib/docker/plugin-data/
+      # Docker socket access for container operations
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Host filesystem access for volume creation
+      - /data:/data
+    environment:
+      - LOG_LEVEL=info
+    healthcheck:
+      test: ["CMD", "test", "-S", "/run/docker/plugins/local-persist.sock"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
-  two:
-    image: alpine
-    working_dir: /two/
-    command: sleep 600
+  # Example service using local-persist volumes
+  app-one:
+    image: alpine:3.18
+    container_name: example-app-one
+    working_dir: /app/data
+    command: sh -c "echo 'App One Data' > /app/data/app-one.txt && tail -f /dev/null"
     volumes:
-      - data:/two/
+      - persistent_data:/app/data
+    depends_on:
+      local-persist:
+        condition: service_healthy
+    restart: unless-stopped
 
+  # Another example service sharing the same persistent volume
+  app-two:
+    image: alpine:3.18
+    container_name: example-app-two
+    working_dir: /app/shared
+    command: sh -c "echo 'App Two Data' > /app/shared/app-two.txt && tail -f /dev/null"
+    volumes:
+      - persistent_data:/app/shared
+    depends_on:
+      local-persist:
+        condition: service_healthy
+    restart: unless-stopped
+
+# Named volumes using local-persist driver
 volumes:
-  data:
+  # Plugin state persistence
+  plugin_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${PLUGIN_DATA_PATH:-/var/lib/docker/plugin-data}
+
+  # Example persistent data volume
+  persistent_data:
     driver: local-persist
     driver_opts:
-      mountpoint: /data/local-persist/data
+      mountpoint: ${DATA_MOUNTPOINT:-/data/local-persist/shared}
+
+  # Additional example volumes for different use cases
+  app_logs:
+    driver: local-persist
+    driver_opts:
+      mountpoint: ${LOGS_MOUNTPOINT:-/data/local-persist/logs}
+
+  database_data:
+    driver: local-persist
+    driver_opts:
+      mountpoint: ${DB_MOUNTPOINT:-/data/local-persist/database}
+
+networks:
+  default:
+    name: local-persist-network
+    driver: bridge

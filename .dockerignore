@@ -1,8 +1,50 @@
-.idea
-bin
-init
-scripts
-local-persist.iml
+# Git files
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+CLAUDE.md
 README.md
+LICENSE
+
+# Build artifacts
+bin/
 coverage.out
-vendor
+
+# Development files
+.idea/
+.vscode/
+*.iml
+local-persist.iml
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+*.tmp
+
+# Docker files (except the ones we're building)
+docker-compose*.yml
+
+# Test files
+*_test.go
+coverage.*
+
+# CI/CD
+.github/
+.travis.yml
+
+# Legacy dependency management
+glide.yaml
+glide.lock
+vendor/
+
+# Scripts (included separately if needed)
+scripts/
+
+# Init files (not needed in container)
+init/
