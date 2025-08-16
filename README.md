@@ -1,114 +1,225 @@
 # Local Persist Volume Plugin for Docker
 
-[![Build Status](https://travis-ci.org/MatchbookLab/local-persist.svg?branch=master)](https://travis-ci.org/MatchbookLab/local-persist) [![Join the chat at https://gitter.im/MatchbookLab/local-persist](https://badges.gitter.im/MatchbookLab/local-persist.svg)](https://gitter.im/MatchbookLab/local-persist?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Docker Pulls](https://img.shields.io/docker/pulls/smashingtags/local-persist)](https://github.com/smashingtags/local-persist/pkgs/container/local-persist)
+[![GitHub Release](https://img.shields.io/github/release/smashingtags/local-persist.svg)](https://github.com/smashingtags/local-persist/releases)
+[![Go Report Card](https://goreportcard.com/badge/github.com/smashingtags/local-persist)](https://goreportcard.com/report/github.com/smashingtags/local-persist)
 
-Create named local volumes that persist in the location(s) you want!
+**Modern Go implementation of the Docker local-persist volume plugin**
 
-## Rationale
+Create named local volumes that persist in the location(s) you want! This is a modernized, containerized version of the original local-persist plugin, rewritten in Go with static compilation for maximum compatibility.
 
-In Docker 1.9, they added support for [creating standalone named Volumes](https://docs.docker.com/engine/reference/commandline/volume_create/). Now with Docker 1.10 and Docker Compose 1.6's new syntax, you can [create named volumes through Docker Compose](https://docs.docker.com/compose/compose-file/#volume-configuration-reference).
+## 🚀 Quick Start
 
-This is great for creating standalone volumes and easily connecting them to different directories in different containers as a way to share data between multiple containers. On a much larger scale, it also allows for the use of Docker Volume Plugins to do cool things like [Flocker](https://github.com/ClusterHQ/flocker) is doing (help run stateful containers across multiple hosts).
+### Container Deployment (Recommended)
 
-Even if something like Flocker is overkill for your needs, it can still be useful to have persistent data on your host. I'm a strong advocate for "Docker for small projects" and not just huge, scaling behemoths and microservices. I wrote this out of a need on projects I'm currently working on and have in production.
+The easiest way to run local-persist is as a container using the pre-built image:
 
-This `local-persist` approach gives you the same benefits of standalone Volumes that `docker volume create ...` normally affords, while also allowing you to create Volumes that *persist*, thus giving those stateful containers their state. Read below how to install and use, then read more about the [benefits](#benefits) of this approach.
+```bash
+# Create required directories
+sudo mkdir -p /run/docker/plugins /var/lib/docker/plugin-data /opt/appdata
+sudo chmod 755 /run/docker/plugins /var/lib/docker/plugin-data /opt/appdata
 
-## Installing & Running
-
-To create a Docker Plugin, one must create a Unix socket that Docker will look for when you use the plugin and then it listens for commands from Docker and runs the corresponding code when necessary.
-
-Running the code in this project with create the said socket, listening for commands from Docker to create the necessary Volumes.
-
-According to the [Docker Plugin API Docs](https://docs.docker.com/engine/extend/plugin_api/):
-
-> Plugins can run inside or outside containers. Currently running them outside containers is recommended.
-
-It doesn't really say *why* one way is recommended over the other, but I provide binaries and instructions to run outside of container, as well as an image and instructions to run it inside a container.
-
-### Running Outside a Container
-
-**Note:** You currently cannot run this plugin natively on macOS or Windows. The current workaround is to [run the plugin in a container](#running-from-within-a-container).
-
-#### Quick Way
-
-I provide an `install` script that will download the proper binary, set up an Systemd service to start when Docker does and enable it.
-
-```shell
-curl -fsSL https://raw.githubusercontent.com/MatchbookLab/local-persist/master/scripts/install.sh | sudo bash
-```
-
-This needs be to run on the Docker *host*. i.e. running that on a Mac won't work (and it will print a message saying as much and exit).
-
-This has been tested on Ubuntu 15.10, and is known *not* to work on CoreOS (yet). If you need to use Upstart instead of Systemd, you can pass the `--upstart` flag to the install script, but it isn't as tested, so it may not work:
-
-```shell
-curl -fsSL https://raw.githubusercontent.com/MatchbookLab/local-persist/master/scripts/install.sh | sudo bash -s -- --upstart
-```
-
-Follow the same process to update to the latest version.
-
-#### Manual Way
-
-If you're uncomfortable running a script you downloaded off the internet with `sudo`, you can extract any of the steps out of the [`install.sh`](scripts/install.sh) script and run them manually. However you want to do it, the main steps are:
-
-1. Download the appropriate binary from the [Releases page](https://github.com/MatchbookLab/local-persist/releases) for your OS and architecture.
-2. Rename the downloaded file `docker-volume-local-persist`
-3. Place it in `/usr/bin` (you can put it somewhere else, but be sure your Systemd (or similar) config reflects the change).
-4. Make sure the file is executable (`chmod +x /usr/bin/docker-volume-local-persist`)
-5. It's enough to just run it at this point (type `docker-volume-local-persist` and hit enter) to test, etc, and if that's all you're trying to do, you're done. But if you want it to start with Docker, proceed to step 6.
-6. Download [systemd.service](init/systemd.service)
-7. Rename the service file to `docker-volume-local-persist.service`
-8. Move it to `/etc/systemd/system/`
-9. run `sudo systemctl daemon-reload` to reload the config
-10. run `sudo systemctl enable docker-volume-local-persist` to enable the service (it will start after Docker does)
-11. run `sudo systemctl start docker-volume-local-persist` to start it now. Safe to run if it's already started
-
-<a id="running-from-within-a-container"></a>
-### Running from Within a Container (aka Running on Mac or Windows)
-
-macOS and Windows do not support native Docker plugins, so the solution is to run this plugin from another container (you can also do this on Linux if you don't want to install the plugin manually).
-
-I maintain an [image on Docker Hub](https://hub.docker.com/r/cwspear/docker-local-persist-volume-plugin/) to run this plugin from a container:
-
-```shell
+# Deploy local-persist container
 docker run -d \
-    -v /run/docker/plugins/:/run/docker/plugins/ \
-    -v /path/to/store/json/for/restart/:/var/lib/docker/plugin-data/ \
-    -v /path/to/where/you/want/data/volume/:/path/to/where/you/want/data/volume/ \
-        cwspear/docker-local-persist-volume-plugin
+  --name local-persist \
+  --restart unless-stopped \
+  --privileged \
+  --user root \
+  -v /var/run/docker.sock:/var/run/docker.sock:rw \
+  -v /run/docker/plugins:/run/docker/plugins:rw \
+  -v /var/lib/docker/plugin-data:/var/lib/docker/plugin-data:rw \
+  -v /opt/appdata:/opt/appdata:shared \
+  ghcr.io/smashingtags/local-persist:latest
 ```
 
-The `-v /run/docker/plugins/:/run/docker/plugins/` part will make sure the `sock` file gets created at the right place. You also need to add one or more volumes to places you want to mount your volumes later at.
+### Docker Compose Deployment
 
-For example, if I am going to persist my MySQL data for a container I'm going to build later at `/data/mysql/`, I would add a `-v /data/mysql/:/data/mysql/` to the command above (or even `-v /data/:/data/`). You can add more than one location in this manner.
-
-Lastly, the `-v /path/to/store/json/for/restart/:/var/lib/docker/plugin-data/` part is so that the plugin can create a `json` file to know what volumes existed in case of a system restart, etc. 
-
-When the container is destroyed, etc, it will look at a file it created in `/var/lib/docker/plugin-data/` to recreate any volumes that had previously existed, so you want that JSON file to persist on the host. 
-
-## Usage: Creating Volumes
-
-Then to use, you can create a volume with this plugin (this example will be for a shared folder for images):
-
-```shell
-docker volume create -d local-persist -o mountpoint=/data/images --name=images
+```yaml
+services:
+  local-persist:
+    container_name: local-persist
+    image: ghcr.io/smashingtags/local-persist:latest
+    restart: unless-stopped
+    user: root
+    privileged: true
+    cap_add:
+      - SYS_ADMIN
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:rw
+      - /run/docker/plugins:/run/docker/plugins:rw
+      - /var/lib/docker/plugin-data:/var/lib/docker/plugin-data:rw
+      - /opt/appdata:/opt/appdata:shared
+      - /mnt:/mnt:shared
+    environment:
+      - PUID=0
+      - PGID=0
+      - TZ=UTC
+    healthcheck:
+      test: ["CMD", "test", "-S", "/run/docker/plugins/local-persist.sock"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
 ```
 
-Then if you create a container, you can connect it to this Volume:
+## 📚 Usage
 
-```shell
-docker run -d -v images:/path/to/images/on/one/ one
-docker run -d -v images:/path/to/images/on/two/ two
-# etc
+Once local-persist is running, you can create persistent volumes that map to specific host directories:
+
+### Create a Volume
+
+```bash
+# Create a volume that persists to /opt/appdata/myapp
+docker volume create -d local-persist -o mountpoint=/opt/appdata/myapp --name myapp-data
 ```
 
-Also, see [docker-compose.example.yml](docker-compose.example.yml) for an example to do something like this with Docker Compose (needs Compose 1.6+ which needs Engine 1.10+).
+### Use in Container
 
-## Benefits
+```bash
+# Use the volume in a container
+docker run -d --name myapp -v myapp-data:/data myapp:latest
+```
 
-This has a few advantages over the (default) `local` driver that comes with Docker, because our data *will not be deleted* when the Volume is removed. The `local` driver deletes all data when it's removed. With the `local-persist` driver, if you remove the driver, and then recreate it later with the same command above, any volume that was added to that volume will *still be there*.
+### Use in Docker Compose
 
-You may have noticed that you could do this with data-only containers, too. And that's true, and using that technique has a few advantages, one thing it (specifically as a limitation of `volumes-from`) does *not* allow, is mounting that shared volume to a different path inside your containers. Trying to recreate the above example, each container would have to store images in the same directory in their containers, instead of separate ones which `local-persist` allows.
+```yaml
+services:
+  myapp:
+    image: myapp:latest
+    volumes:
+      - myapp-data:/data
 
-Also, using `local-persist` instead of data-only containers, `docker ps -a` won't have extra dead entries, and `docker volume ls` will have more descriptive output (because volumes have names).
+volumes:
+  myapp-data:
+    driver: local-persist
+    driver_opts:
+      mountpoint: /opt/appdata/myapp
+```
+
+## 🔧 Configuration
+
+### Environment Variables
+
+- `PUID`: User ID for file ownership (default: 0)
+- `PGID`: Group ID for file ownership (default: 0) 
+- `TZ`: Timezone (default: UTC)
+
+### Volume Options
+
+- `mountpoint`: Host directory where the volume will persist (required)
+
+## 🏗️ Building from Source
+
+```bash
+# Clone the repository
+git clone https://github.com/smashingtags/local-persist.git
+cd local-persist
+
+# Build the binary
+make build
+
+# Build the Docker image
+make docker-build
+
+# Run tests
+make test
+```
+
+## 🐳 Container Images
+
+Pre-built images are available from GitHub Container Registry:
+
+- `ghcr.io/smashingtags/local-persist:latest` - Latest stable release
+- `ghcr.io/smashingtags/local-persist:v1.x.x` - Specific version tags
+
+### Supported Architectures
+
+- `linux/amd64`
+- `linux/arm64`
+
+## 🔒 Security Considerations
+
+This plugin requires privileged access to:
+- Docker socket (`/var/run/docker.sock`)
+- Plugin socket directory (`/run/docker/plugins`)
+- Host filesystem for volume mounts
+
+**Important**: Only run this plugin on trusted Docker hosts as it has extensive filesystem access.
+
+## 🆚 Comparison with Alternatives
+
+### vs. Named Volumes
+- ✅ **Local-persist**: Data stored in specific host locations
+- ❌ **Named volumes**: Data stored in Docker's managed directories
+
+### vs. Bind Mounts
+- ✅ **Local-persist**: Volume lifecycle managed by Docker
+- ❌ **Bind mounts**: Manual directory management required
+
+### vs. Other Volume Plugins
+- ✅ **Local-persist**: Simple, lightweight, no external dependencies
+- ❌ **Other plugins**: Often require external storage systems
+
+## 🛠️ Integration Examples
+
+### HomelabARR Media Stack
+
+This plugin was specifically modernized for use with HomelabARR (formerly DockServer):
+
+```bash
+# Install with HomelabARR
+curl -fsSL https://raw.githubusercontent.com/smashingtags/homelabarr-cli/master/scripts/install-local-persist-container.sh | sudo bash
+```
+
+### Plex Media Server
+
+```yaml
+services:
+  plex:
+    image: plexinc/pms-docker:latest
+    volumes:
+      - plex-config:/config
+      - plex-transcode:/transcode
+      - /mnt/media:/media:ro
+
+volumes:
+  plex-config:
+    driver: local-persist
+    driver_opts:
+      mountpoint: /opt/appdata/plex
+  plex-transcode:
+    driver: local-persist
+    driver_opts:
+      mountpoint: /tmp/plex-transcode
+```
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- Original [local-persist](https://github.com/MatchbookLab/local-persist) by MatchbookLab
+- Docker community for volume plugin specifications
+- Go community for excellent tooling and libraries
+
+## 📞 Support
+
+- 🐛 **Issues**: [GitHub Issues](https://github.com/smashingtags/local-persist/issues)
+- 💬 **Discussions**: [GitHub Discussions](https://github.com/smashingtags/local-persist/discussions)
+- 📖 **Documentation**: [HomelabARR Wiki](https://github.com/smashingtags/homelabarr-cli/wiki)
+
+---
+
+**Made with ❤️ for the self-hosted community**
