@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:1.18-alpine AS builder
+FROM golang:1.21-alpine AS builder
 
 # Install build dependencies
 RUN apk add --no-cache git ca-certificates tzdata
@@ -38,8 +38,9 @@ RUN mkdir -p /var/lib/docker/plugin-data/ \
 COPY --from=builder /src/local-persist /usr/local/bin/local-persist
 RUN chmod +x /usr/local/bin/local-persist
 
-# Switch to non-root user
-USER localvol
+# Note: Plugin needs root access for Docker socket
+# USER localvol
+USER root
 
 # Health check to verify plugin socket is responding
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
