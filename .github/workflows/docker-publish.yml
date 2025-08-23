@@ -6,6 +6,12 @@ on:
     tags: [ 'v*.*.*' ]
   pull_request:
     branches: [ master, main ]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag for the image (optional)'
+        required: false
+        default: 'manual'
 
 env:
   REGISTRY: ghcr.io
