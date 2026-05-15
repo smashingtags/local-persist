@@ -1,4 +1,4 @@
-package main
+package driver
 
 import (
 	"os"
@@ -12,7 +12,7 @@ const (
 	testMountpoint = "/tmp/data/local-persist-test"
 )
 
-func createVolume(t *testing.T, d localPersistDriver, name, mountpoint string) {
+func createVolume(t *testing.T, d Driver, name, mountpoint string) {
 	t.Helper()
 	res := d.Create(volume.Request{
 		Name:    name,
@@ -23,7 +23,7 @@ func createVolume(t *testing.T, d localPersistDriver, name, mountpoint string) {
 	}
 }
 
-func removeVolume(t *testing.T, d localPersistDriver, name, mountpoint string) {
+func removeVolume(t *testing.T, d Driver, name, mountpoint string) {
 	t.Helper()
 	os.RemoveAll(mountpoint)
 	d.Remove(volume.Request{Name: name})
@@ -34,7 +34,7 @@ func removeVolume(t *testing.T, d localPersistDriver, name, mountpoint string) {
 }
 
 func TestCreate(t *testing.T) {
-	d := newLocalPersistDriver()
+	d := New()
 	createVolume(t, d, testName, testMountpoint)
 
 	if _, err := os.Stat(testMountpoint); os.IsNotExist(err) {
@@ -53,7 +53,7 @@ func TestCreate(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
-	d := newLocalPersistDriver()
+	d := New()
 	createVolume(t, d, testName, testMountpoint)
 
 	res := d.Get(volume.Request{Name: testName})
@@ -65,7 +65,7 @@ func TestGet(t *testing.T) {
 }
 
 func TestList(t *testing.T) {
-	d := newLocalPersistDriver()
+	d := New()
 	createVolume(t, d, testName, testMountpoint)
 
 	res := d.List(volume.Request{})
@@ -84,7 +84,7 @@ func TestList(t *testing.T) {
 }
 
 func TestMountUnmountPath(t *testing.T) {
-	d := newLocalPersistDriver()
+	d := New()
 	createVolume(t, d, testName, testMountpoint)
 
 	pathRes := d.Path(volume.Request{Name: testName})

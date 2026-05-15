@@ -1,4 +1,4 @@
-package main
+package driver
 
 import (
 	"encoding/json"
@@ -16,41 +16,39 @@ const (
 	stateFile = "local-persist.json"
 )
 
-type localPersistDriver struct {
+type Driver struct {
 	volumes map[string]string
 	mu      *sync.Mutex
-	name    string
 }
 
 type saveData struct {
 	State map[string]string `json:"state"`
 }
 
-func newLocalPersistDriver() localPersistDriver {
-	driver := localPersistDriver{
+func New() Driver {
+	d := Driver{
 		volumes: map[string]string{},
 		mu:      &sync.Mutex{},
-		name:    "local-persist",
 	}
 
 	os.MkdirAll(stateDir, 0700)
 
-	if err, vols := loadStateFile(); err == nil {
-		driver.volumes = vols
+	if vols, err := loadStateFile(); err == nil {
+		d.volumes = vols
 	}
-	log.Printf("Starting with %d existing volumes", len(driver.volumes))
+	log.Printf("Starting with %d existing volumes", len(d.volumes))
 
-	return driver
+	return d
 }
 
-func (d localPersistDriver) Get(req volume.Request) volume.Response {
+func (d Driver) Get(req volume.Request) volume.Response {
 	if mp, ok := d.volumes[req.Name]; ok {
 		return volume.Response{Volume: &volume.Volume{Name: req.Name, Mountpoint: mp}}
 	}
 	return volume.Response{Err: fmt.Sprintf("no volume found with name %s", req.Name)}
 }
 
-func (d localPersistDriver) List(req volume.Request) volume.Response {
+func (d Driver) List(req volume.Request) volume.Response {
 	var vols []*volume.Volume
 	for name, mp := range d.volumes {
 		vols = append(vols, &volume.Volume{Name: name, Mountpoint: mp})
@@ -58,7 +56,7 @@ func (d localPersistDriver) List(req volume.Request) volume.Response {
 	return volume.Response{Volumes: vols}
 }
 
-func (d localPersistDriver) Create(req volume.Request) volume.Response {
+func (d Driver) Create(req volume.Request) volume.Response {
 	mountpoint := req.Options["mountpoint"]
 	if mountpoint == "" {
 		return volume.Response{Err: "the `mountpoint` option is required"}
@@ -84,7 +82,7 @@ func (d localPersistDriver) Create(req volume.Request) volume.Response {
 	return volume.Response{}
 }
 
-func (d localPersistDriver) Remove(req volume.Request) volume.Response {
+func (d Driver) Remove(req volume.Request) volume.Response {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
@@ -97,36 +95,36 @@ func (d localPersistDriver) Remove(req volume.Request) volume.Response {
 	return volume.Response{}
 }
 
-func (d localPersistDriver) Mount(req volume.MountRequest) volume.Response {
+func (d Driver) Mount(req volume.MountRequest) volume.Response {
 	return d.Path(volume.Request{Name: req.Name})
 }
 
-func (d localPersistDriver) Path(req volume.Request) volume.Response {
+func (d Driver) Path(req volume.Request) volume.Response {
 	return volume.Response{Mountpoint: d.volumes[req.Name]}
 }
 
-func (d localPersistDriver) Unmount(req volume.UnmountRequest) volume.Response {
+func (d Driver) Unmount(req volume.UnmountRequest) volume.Response {
 	return d.Path(volume.Request{Name: req.Name})
 }
 
-func (d localPersistDriver) Capabilities(req volume.Request) volume.Response {
+func (d Driver) Capabilities(req volume.Request) volume.Response {
 	return volume.Response{Capabilities: volume.Capability{Scope: "local"}}
 }
 
-func loadStateFile() (error, map[string]string) {
+func loadStateFile() (map[string]string, error) {
 	p := filepath.Join(stateDir, stateFile)
 	data, err := os.ReadFile(p)
 	if err != nil {
-		return err, nil
+		return nil, err
 	}
 	var s saveData
 	if err := json.Unmarshal(data, &s); err != nil {
-		return err, nil
+		return nil, err
 	}
-	return nil, s.State
+	return s.State, nil
 }
 
-func (d localPersistDriver) saveState() error {
+func (d Driver) saveState() error {
 	data, err := json.Marshal(saveData{State: d.volumes})
 	if err != nil {
 		return err

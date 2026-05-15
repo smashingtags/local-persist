@@ -68,8 +68,17 @@ volumes:
 ```bash
 make build          # build for current arch
 make binaries       # cross-compile linux/amd64 + arm64
-make test           # run tests
+make test           # vet + run tests
 make docker         # build Docker image
+```
+
+## Project Structure
+
+```
+cmd/local-persist/main.go          — entry point
+internal/driver/driver.go          — volume plugin implementation
+internal/driver/driver_test.go     — tests
+init/systemd.service               — systemd unit file
 ```
 
 ## How It Works

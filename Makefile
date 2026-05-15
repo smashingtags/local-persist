@@ -1,23 +1,24 @@
 BIN_NAME = local-persist
 LDFLAGS  = -s -w
 
-.PHONY: test build binaries clean run
+.PHONY: test build binaries clean run docker
 
 test:
-	GO_ENV=test go test -v ./...
+	go vet ./...
+	go test -v ./...
 
 build:
-	CGO_ENABLED=0 go build -ldflags="$(LDFLAGS)" -o bin/$(BIN_NAME) .
+	CGO_ENABLED=0 go build -ldflags="$(LDFLAGS)" -o bin/$(BIN_NAME) ./cmd/local-persist
 
 binaries: clean
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o bin/$(BIN_NAME)-linux-amd64 .
-	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags="$(LDFLAGS)" -o bin/$(BIN_NAME)-linux-arm64 .
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o bin/$(BIN_NAME)-linux-amd64 ./cmd/local-persist
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags="$(LDFLAGS)" -o bin/$(BIN_NAME)-linux-arm64 ./cmd/local-persist
 
 clean:
 	rm -rf bin/
 
 run:
-	sudo go run main.go driver.go
+	sudo go run ./cmd/local-persist
 
 docker:
 	docker build -t $(BIN_NAME) .
