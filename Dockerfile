@@ -13,4 +13,6 @@ COPY --from=builder /local-persist /usr/local/bin/local-persist
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD test -S /run/docker/plugins/local-persist.sock || exit 1
 VOLUME ["/run/docker/plugins", "/var/lib/docker/plugin-data"]
+# Root required: plugin creates Unix socket at /run/docker/plugins/ and manages host directories
+USER root
 CMD ["/usr/local/bin/local-persist"]
