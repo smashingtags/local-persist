@@ -1,14 +1,13 @@
 package main
 
 import (
-    "fmt"
+	"log"
 
-    "github.com/docker/go-plugins-helpers/volume"
+	"github.com/docker/go-plugins-helpers/volume"
 )
 
 func main() {
-    driver := newLocalPersistDriver()
-
-    handler := volume.NewHandler(driver)
-    fmt.Println(handler.ServeUnix("root", driver.name))
+	driver := newLocalPersistDriver()
+	handler := volume.NewHandler(driver)
+	log.Fatal(handler.ServeUnix("root", driver.name))
 }
