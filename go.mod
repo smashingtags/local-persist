@@ -1,4 +1,4 @@
-module github.com/MatchbookLab/local-persist
+module github.com/smashingtags/local-persist
 
 go 1.22
 

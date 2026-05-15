@@ -210,16 +210,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- Original [local-persist](https://github.com/MatchbookLab/local-persist) by MatchbookLab
-- Docker community for volume plugin specifications
-- Go community for excellent tooling and libraries
+- Originally created by [Cameron Spear / MatchbookLab](https://github.com/MatchbookLab/local-persist) (archived Sept 2025)
+- Maintained by [smashingtags](https://github.com/smashingtags) since 2025
 
 ## 📞 Support
 
 - 🐛 **Issues**: [GitHub Issues](https://github.com/smashingtags/local-persist/issues)
 - 💬 **Discussions**: [GitHub Discussions](https://github.com/smashingtags/local-persist/discussions)
-- 📖 **Documentation**: [HomelabARR Wiki](https://github.com/smashingtags/homelabarr-cli/wiki)
-
----
-
-**Made with ❤️ for the self-hosted community**
+- 📖 **Documentation**: This README
