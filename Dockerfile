@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:1.21-alpine AS builder
+FROM golang:1.26-alpine AS builder
 
 # Install build dependencies
 RUN apk add --no-cache git ca-certificates tzdata
@@ -23,7 +23,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build \
     -o local-persist .
 
 # Runtime stage
-FROM alpine:3.18
+FROM alpine:3.22
 
 # Install runtime dependencies and create non-root user
 RUN apk add --no-cache ca-certificates tzdata \
