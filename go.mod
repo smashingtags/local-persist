@@ -16,3 +16,5 @@ require (
 	golang.org/x/net v0.54.0 // indirect
 	golang.org/x/sys v0.44.0 // indirect
 )
+
+replace github.com/Sirupsen/logrus => github.com/sirupsen/logrus v1.9.4
