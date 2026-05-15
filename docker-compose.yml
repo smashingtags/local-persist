@@ -1,26 +1,13 @@
-version: '3.8'
-
 services:
-  # Local Persist Volume Plugin
   local-persist:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: local-persist-plugin
+    image: ghcr.io/smashingtags/local-persist:latest
+    container_name: local-persist
     restart: unless-stopped
-    privileged: true  # Required for volume plugin operations
-    network_mode: host
+    privileged: true
     volumes:
-      # Plugin socket communication with Docker daemon
       - /run/docker/plugins/:/run/docker/plugins/
-      # State persistence for plugin data
-      - ${PLUGIN_DATA_PATH:-/var/lib/docker/plugin-data}:/var/lib/docker/plugin-data/
-      # Docker socket access for container operations
+      - /var/lib/docker/plugin-data/:/var/lib/docker/plugin-data/
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      # Host filesystem access for volume creation
-      - /data:/data
-    environment:
-      - LOG_LEVEL=${LOG_LEVEL:-info}
     healthcheck:
       test: ["CMD", "test", "-S", "/run/docker/plugins/local-persist.sock"]
       interval: 30s
@@ -28,12 +15,7 @@ services:
       retries: 3
       start_period: 10s
     logging:
-      driver: "json-file"
+      driver: json-file
       options:
-        max-size: "10m"
+        max-size: 10m
         max-file: "3"
-
-networks:
-  default:
-    name: local-persist-network
-    driver: bridge
