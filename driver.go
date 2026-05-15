@@ -43,7 +43,7 @@ type saveData struct {
 }
 
 func newLocalPersistDriver() localPersistDriver {
-    fmt.Printf(white("%-18s", "Starting... "))
+    fmt.Print(white("%-18s", "Starting... "))
 
     driver := localPersistDriver{
         volumes : map[string]string{},

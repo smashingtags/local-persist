@@ -1,12 +1,12 @@
 module github.com/smashingtags/local-persist
 
-go 1.22
+go 1.25.0
 
 require (
 	github.com/docker/engine-api v0.4.0
 	github.com/docker/go-plugins-helpers v0.0.0-20161031114640-60d242cfd0fb
 	github.com/fatih/color v1.1.0
-	golang.org/x/net v0.33.0
+	golang.org/x/net v0.54.0
 )
 
 require (
@@ -23,5 +23,5 @@ require (
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/runc v1.2.8 // indirect
 	github.com/stretchr/testify v1.11.1 // indirect
-	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/sys v0.44.0 // indirect
 )
