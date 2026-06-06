@@ -6,3 +6,6 @@ coverage.out
 vendor/
 .vscode
 /local-persist
+# internal agent docs — never commit
+CLAUDE.md
+HANDOFF.md
