@@ -11,7 +11,7 @@ require (
 	github.com/coreos/pkg v0.0.0-20161026222926-447b7ec906e5 // indirect
 	github.com/docker/go-connections v0.2.2-0.20161031182214-f512407a188e // indirect
 	github.com/moby/sys/user v0.3.0 // indirect
-	github.com/opencontainers/runc v1.2.8 // indirect
+	github.com/opencontainers/runc v1.3.6 // indirect
 	github.com/stretchr/testify v1.11.1 // indirect
 	golang.org/x/net v0.54.0 // indirect
 	golang.org/x/sys v0.44.0 // indirect
